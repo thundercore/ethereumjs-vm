@@ -182,8 +182,20 @@ const istanbulOpcodes: OpcodeList = {
   0x54: { name: 'SLOAD', fee: 800, isAsync: true },
 }
 
+const palaOpcodes: OpcodeList = {
+  0x31: { name: 'BALANCE', fee: 14000, isAsync: true },
+  0x3b: { name: 'EXTCODESIZE', fee: 14000, isAsync: true },
+  0x3c: { name: 'EXTCODECOPY', fee: 14000, isAsync: true },
+  0x3f: { name: 'EXTCODEHASH', fee: 14000, isAsync: true },
+  0xff: { name: 'SELFDESTRUCT', fee: 50000, isAsync: true },
+  0x54: { name: 'SLOAD', fee: 16000, isAsync: true },
+  0xf1: { name: 'CALL', fee: 14000, isAsync: true },
+}
+
 export function getOpcodesForHF(common: Common) {
-  if (common.gteHardfork('istanbul')) {
+  if (common.gteHardfork('pala')) {
+    return { ...opcodes, ...palaOpcodes }
+  } else if (common.gteHardfork('istanbul')) {
     return { ...opcodes, ...istanbulOpcodes }
   } else {
     return { ...opcodes }

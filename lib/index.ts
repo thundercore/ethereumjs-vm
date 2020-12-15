@@ -78,7 +78,7 @@ export default class VM extends AsyncEventEmitter {
    * Instantiates a new [[VM]] Object.
    * @param opts - Default values for the options are:
    *  - `chain`: 'mainnet'
-   *  - `hardfork`: 'petersburg' [supported: 'byzantium', 'constantinople', 'petersburg', 'istanbul' (DRAFT) (will throw on unsupported)]
+   *  - `hardfork`: 'pala' [supported: 'byzantium', 'constantinople', 'petersburg', 'pala', 'istanbul' (DRAFT) (will throw on unsupported)]
    *  - `activatePrecompiles`: false
    *  - `allowUnlimitedContractSize`: false [ONLY set to `true` during debugging]
    */
@@ -97,13 +97,14 @@ export default class VM extends AsyncEventEmitter {
       this._common = opts.common
     } else {
       const chain = opts.chain ? opts.chain : 'mainnet'
-      const hardfork = opts.hardfork ? opts.hardfork : 'petersburg'
+      const hardfork = opts.hardfork ? opts.hardfork : 'pala'
       const supportedHardforks = [
         'byzantium',
         'constantinople',
         'petersburg',
         'istanbul',
         'muirGlacier',
+        'pala',
       ]
 
       this._common = new Common(chain, hardfork, supportedHardforks)
