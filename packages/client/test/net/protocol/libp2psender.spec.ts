@@ -1,9 +1,7 @@
 import tape from 'tape-catch'
-const pull = require('pull-stream')
-// TODO: investigate pull-pair implicit dependency...
-// eslint-disable-next-line implicit-dependencies/no-implicit
+import pull from 'pull-stream'
+import { Libp2pSender } from '../../../lib/net/protocol'
 const DuplexPair = require('pull-pair/duplex')
-const { Libp2pSender } = require('../../../lib/net/protocol')
 
 tape('[Libp2pSender]', (t) => {
   t.test('should send/receive status', (t) => {
@@ -31,7 +29,10 @@ tape('[Libp2pSender]', (t) => {
   })
 
   t.test('should catch errors', (t) => {
-    const err0 = { source: pull.error(new Error('err0')), sink: pull.drain() }
+    const err0 = {
+      source: (pull as any).error(new Error('err0')),
+      sink: pull.drain(() => {}),
+    } as any
     t.throws(() => new Libp2pSender(err0), /err0/, 'catch error')
     t.end()
   })

@@ -1,9 +1,6 @@
 {
   "extends": "@ethereumjs/config-typescript/tsconfig.json",
-  "include": ["bin", "lib", "test"],
+  "include": ["bin", "lib", "typings", "test"],
   "compilerOptions": {
-    "typeRoots": [
-      "../../node_modules/@polkadot/ts"
-    ]
   }
 }

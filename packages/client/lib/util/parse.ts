@@ -2,7 +2,7 @@ import { parse } from 'url'
 import { BlockHeader } from '@ethereumjs/block'
 import { SecureTrie as Trie } from '@ethereumjs/trie'
 import { Account, BN, keccak, rlp, toBuffer, unpadBuffer, isHexPrefixed } from 'ethereumjs-util'
-import { Bootnode, BootnodeLike, Multiaddrs, MultiaddrsLike } from '../types'
+import { Bootnode, BootnodeLike } from '../types'
 
 export function parseBootnodes(input: BootnodeLike): Bootnode[] {
   if (!input) {
@@ -168,13 +168,6 @@ export async function parseParams(json: any, name?: string) {
   } catch (e) {
     throw new Error(`Error parsing parameters file: ${e.message}`)
   }
-}
-
-export function parseMultiaddrs(input: MultiaddrsLike): Multiaddrs {
-  if (typeof input === 'string') {
-    input = input.split(',')
-  }
-  return input
 }
 
 export function parseKey(input: string | Buffer) {

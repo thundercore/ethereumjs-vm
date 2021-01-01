@@ -3,42 +3,36 @@
  * @memberof module:net/peer
  */
 
-import LibP2pWebsockets from 'libp2p-websockets'
-import LibP2pBootstrap from 'libp2p-bootstrap'
-import mplex from 'libp2p-mplex'
-import secio from 'libp2p-secio'
+import LibP2p from 'libp2p'
+// types currently unavailable for below libp2p deps, tracking issue:
+// https://github.com/libp2p/js-libp2p/issues/659
+const LibP2pWebsockets = require('libp2p-websockets')
+const LibP2pBootstrap = require('libp2p-bootstrap')
+const mplex = require('libp2p-mplex')
+const secio = require('libp2p-secio')
+import { Libp2pNodeOptions } from '../lib/net/peer/libp2pnode'
 
-const libp2p = require('libp2p')
-const promisify = require('util-promisify')
-
-export class Libp2pNode extends libp2p {
-  constructor(options: any) {
+export class Libp2pNode extends LibP2p {
+  constructor(options: Libp2pNodeOptions) {
     super({
-      peerInfo: options.peerInfo,
+      peerId: options.peerId,
+      addresses: options.addresses,
       modules: {
         transport: [LibP2pWebsockets],
         streamMuxer: [mplex],
         connEncryption: [secio],
-        peerDiscovery: [LibP2pBootstrap],
+        [<any>'peerDiscovery']: [LibP2pBootstrap],
       },
       config: {
         peerDiscovery: {
-          bootstrap: {
+          autoDial: true,
+          [LibP2pBootstrap.tag]: {
             interval: 2000,
-            enabled: options.bootnodes !== undefined,
+            enabled: options.bootnodes && options.bootnodes.length > 0,
             list: options.bootnodes ?? [],
           },
         },
-        EXPERIMENTAL: {
-          dht: false,
-          pubsub: false,
-        },
       },
     })
-
-    this.asyncStart = promisify(this.start.bind(this))
-    this.asyncStop = promisify(this.stop.bind(this))
-    this.asyncDial = promisify(this.dial.bind(this))
-    this.asyncDialProtocol = promisify(this.dialProtocol.bind(this))
   }
 }

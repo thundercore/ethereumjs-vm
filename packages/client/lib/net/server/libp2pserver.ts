@@ -1,14 +1,13 @@
-const PeerId = require('peer-id')
-const PeerInfo = require('peer-info')
-import { Multiaddrs, MultiaddrsLike } from '../../types'
-import { parseMultiaddrs } from '../../util'
+import PeerId from 'peer-id'
+import multiaddr from 'multiaddr'
+import type Connection from '../../../../../node_modules/libp2p-interfaces/dist/src/connection/connection'
 import { Libp2pNode } from '../peer/libp2pnode'
 import { Libp2pPeer } from '../peer'
 import { Server, ServerOptions } from './server'
 
 export interface Libp2pServerOptions extends ServerOptions {
-  /* Multiaddrs to listen on (can be a comma separated string or list) */
-  multiaddrs?: MultiaddrsLike
+  /* Multiaddrs to listen on */
+  multiaddrs?: multiaddr[]
 }
 
 /**
@@ -21,7 +20,7 @@ export interface Libp2pServerOptions extends ServerOptions {
 export class Libp2pServer extends Server {
   private peers: Map<string, Libp2pPeer> = new Map()
   private banned: Map<string, number> = new Map()
-  private multiaddrs: Multiaddrs
+  private multiaddrs: multiaddr[]
   private node: Libp2pNode | null
 
   /**
@@ -31,9 +30,7 @@ export class Libp2pServer extends Server {
   constructor(options: Libp2pServerOptions) {
     super(options)
 
-    this.multiaddrs = options.multiaddrs
-      ? parseMultiaddrs(options.multiaddrs)
-      : ['/ip4/127.0.0.1/tcp/50580/ws']
+    this.multiaddrs = options.multiaddrs ?? [multiaddr('/ip4/127.0.0.1/tcp/50580/ws')]
 
     this.node = null
     this.banned = new Map()
@@ -57,17 +54,17 @@ export class Libp2pServer extends Server {
     }
     await super.start()
     if (!this.node) {
+      const peerId = await this.createPeerId()
       this.node = new Libp2pNode({
-        peerInfo: await this.createPeerInfo(),
+        peerId,
         bootnodes: this.bootnodes,
       })
       this.protocols.forEach(async (p) => {
         const protocol = `/${p.name}/${p.versions[0]}`
-        this.node!.handle(protocol, async (_: any, connection: any) => {
+        this.node!.handle(protocol, async ({ connection }) => {
           try {
-            const peerInfo = await this.getPeerInfo(connection)
-            const id = (peerInfo as any).id.toB58String()
-            const peer = this.peers.get(id)
+            const peerId = await this.getPeerId(connection)
+            const peer = this.peers.get(peerId.toB58String())
             if (peer) {
               await peer.accept(p, connection, this)
               this.emit('connected', peer)
@@ -78,30 +75,30 @@ export class Libp2pServer extends Server {
         })
       })
     }
-    this.node.on('peer:discovery', async (peerInfo: any) => {
+    this.node.on('peer:discovery', async (peerId: PeerId) => {
       try {
-        const id = peerInfo.id.toB58String()
+        const id = peerId.toB58String()
         if (this.peers.get(id) || this.isBanned(id)) {
           return
         }
-        const peer = this.createPeer(peerInfo)
-        await peer.bindProtocols(this.node as Libp2pNode, peerInfo, this)
+        const peer = this.createPeer(peerId)
+        await peer.bindProtocols(this.node as Libp2pNode, peerId, this)
         this.config.logger.debug(`Peer discovered: ${peer}`)
         this.emit('connected', peer)
       } catch (e) {
         this.error(e)
       }
     })
-    this.node.on('peer:connect', (peerInfo: any) => {
+    this.node.on('peer:connect', (peerId: PeerId) => {
       try {
-        const peer = this.createPeer(peerInfo)
+        const peer = this.createPeer(peerId)
         this.config.logger.debug(`Peer connected: ${peer}`)
       } catch (e) {
         this.error(e)
       }
     })
-    await this.node.asyncStart()
-    this.node.peerInfo.multiaddrs.toArray().map((ma: any) => {
+    await this.node.start()
+    this.node.addressManager.getListenAddrs().map((ma) => {
       this.emit('listening', {
         transport: this.name,
         url: ma.toString(),
@@ -116,7 +113,7 @@ export class Libp2pServer extends Server {
    */
   async stop(): Promise<boolean> {
     if (this.started) {
-      await this.node!.asyncStop()
+      await this.node!.stop()
       await super.stop()
       this.started = false
     }
@@ -125,8 +122,8 @@ export class Libp2pServer extends Server {
 
   /**
    * Ban peer for a specified time
-   * @param  peerId id of peer
-   * @param  [maxAge] how long to ban peer
+   * @param peerId id of peer
+   * @param maxAge how long to ban peer (default: 60s)
    */
   ban(peerId: string, maxAge = 60000): boolean {
     if (!this.started) {
@@ -160,44 +157,19 @@ export class Libp2pServer extends Server {
     this.emit('error', error)
   }
 
-  async createPeerInfo() {
-    return new Promise((resolve, reject) => {
-      const handler = (err: any, peerInfo: any) => {
-        if (err) {
-          return reject(err)
-        }
-        this.multiaddrs.forEach((ma) => peerInfo.multiaddrs.add(ma))
-        resolve(peerInfo)
-      }
-      if (this.key) {
-        PeerId.createFromPrivKey(this.key, (err: any, id: any) => {
-          if (err) {
-            return reject(err)
-          }
-          PeerInfo.create(id, handler)
-        })
-      } else {
-        PeerInfo.create(handler)
-      }
-    })
+  async createPeerId() {
+    return this.key ? PeerId.createFromPrivKey(this.key) : PeerId.create()
   }
 
-  async getPeerInfo(connection: any) {
-    return new Promise((resolve, reject) => {
-      connection.getPeerInfo((err: any, info: any) => {
-        if (err) {
-          return reject(err)
-        }
-        resolve(info)
-      })
-    })
+  async getPeerId(connection: Connection) {
+    return connection.remotePeer
   }
 
-  createPeer(peerInfo: any) {
+  createPeer(peerId: PeerId, multiaddrs?: multiaddr[]) {
     const peer = new Libp2pPeer({
       config: this.config,
-      id: peerInfo.id.toB58String(),
-      multiaddrs: peerInfo.multiaddrs.toArray().map((ma: any) => ma.toString()),
+      id: peerId.toB58String(),
+      multiaddrs,
       protocols: Array.from(this.protocols),
     })
     this.peers.set(peer.id, peer)

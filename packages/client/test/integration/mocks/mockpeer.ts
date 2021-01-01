@@ -3,11 +3,8 @@ import MockServer from './mockserver'
 import MockSender from './mocksender'
 import * as network from './network'
 import { EventEmitter } from 'events'
-
-// TODO: polkadot/ts types seem wrong (?)
-// "pull_pushable_1.default is not a function"
-const Pushable = require('pull-pushable')
-const pull = require('pull-stream')
+import Pushable from 'pull-pushable'
+import pull from 'pull-stream'
 
 interface MockPeerOptions extends PeerOptions {
   location: string
@@ -48,7 +45,7 @@ export default class MockPeer extends Peer {
 
   async bindProtocols(connection: any) {
     const receiver = new EventEmitter()
-    const pushable = new Pushable()
+    const pushable = Pushable()
     pull(pushable, connection)
     pull(
       connection,

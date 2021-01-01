@@ -1,11 +1,8 @@
 {
   "extends": "@ethereumjs/config-typescript/tsconfig.prod.json",
-  "include": ["bin", "lib"],
+  "include": ["bin", "lib", "typings"],
   "compilerOptions": {
     "outDir": "dist",
     "lib": ["es2018", "dom"],
-    "typeRoots": [
-      "../../node_modules/@polkadot/ts"
-    ]
   }
 }

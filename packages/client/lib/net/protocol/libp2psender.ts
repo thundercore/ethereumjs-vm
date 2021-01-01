@@ -1,12 +1,9 @@
 import { Sender } from './sender'
+import type Connection from '../../../../../node_modules/libp2p-interfaces/dist/src/connection/connection'
 import { bufferToInt, rlp } from 'ethereumjs-util'
-import { Pushable } from 'pull-pushable'
-
-// TODO: polkadot/ts types seem wrong (?)
-// "pull_pushable_1.default is not a function"
-const pushable = require('pull-pushable')
-const catcher = require('pull-catch')
-const pull = require('pull-stream')
+import pushable, { Pushable } from 'pull-pushable'
+import pull from 'pull-stream'
+import catcher from 'pull-catch'
 
 /**
  * Libp2p protocol sender
@@ -15,13 +12,13 @@ const pull = require('pull-stream')
  * @memberof module:net/protocol
  */
 export class Libp2pSender extends Sender {
-  private connection: any
+  private connection: Connection
   private pushableStream: Pushable
   /**
    * Creates a new Libp2p protocol sender
    * @param {Connection} connection  connection to libp2p peer
    */
-  constructor(connection: any) {
+  constructor(connection: Connection) {
     super()
 
     this.connection = connection
