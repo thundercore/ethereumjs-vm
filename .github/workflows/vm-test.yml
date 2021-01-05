@@ -1,0 +1,82 @@
+name: 'VM Test'
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    types: [opened, reopened, synchronize]
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 8.x
+
+      - uses: actions/checkout@v1
+
+      - name: Cache node modules
+        id: cache-node-modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node8-${{ hashFiles('**/package.json') }}
+
+      - run: npm install
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+
+      - run: npm run test:API
+        env:
+          CI: true
+
+      - run: npm run test:API:browser
+        env:
+          CI: true
+
+  test-state:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 8.x
+
+      - uses: actions/checkout@v1
+
+      - name: Cache node modules
+        id: cache-node-modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node8-${{ hashFiles('**/package.json') }}
+
+      - run: npm install
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+
+      - run: npm run test:state:selectedForks
+        env:
+          CI: true
+
+  test-blockchain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 8.x
+
+      - uses: actions/checkout@v1
+
+      - name: Cache node modules
+        id: cache-node-modules
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node8-${{ hashFiles('**/package.json') }}
+
+      - run: npm install
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+
+      - run: npm run test:blockchain
+        env:
+          CI: true
